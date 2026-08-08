@@ -210,7 +210,7 @@ Under active development.
 - [x] Domain model
 - [x] Ports
 - [x] Extract with watermark
-- [ ] Transform and validation
+- [x] Transform and validation
 - [ ] Idempotent load
 - [ ] Fraud rule engine
 - [ ] REST API
