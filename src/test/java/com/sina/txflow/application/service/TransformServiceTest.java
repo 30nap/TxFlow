@@ -48,7 +48,7 @@ class TransformServiceTest {
 
         assertEquals(2, result.valid().size());
         assertEquals(1, result.rejected().size());
-        assertEquals("amount must be positive", result.rejected().get(0).rejectionReason());
+        assertEquals("amount must be positive", result.rejected().getFirst().rejectionReason());
     }
 
     @Test
