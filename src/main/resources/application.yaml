@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: txflow
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/txflow
+    username: txflow
+    password: txflow
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
