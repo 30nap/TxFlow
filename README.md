@@ -1,4 +1,4 @@
-# txflow
+# TxFlow
 
 A scheduled ETL pipeline that ingests raw financial transactions, cleans and aggregates them, and flags suspicious
 activity through a rule-based fraud engine.
