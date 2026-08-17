@@ -164,7 +164,7 @@ separately.
 | Scheduling | Spring Scheduler                 |
 | Validation | ValidationLib                    |
 | Testing    | JUnit 5, Mockito, Testcontainers |
-| Build      | Maven                            |
+| Build      | Gradle                            |
 | CI         | GitHub Actions                   |
 
 ---
