@@ -59,6 +59,8 @@ adapter → application → domain
 
 Dependencies point inward. The domain knows nothing about JPA, Spring, or PostgreSQL.
 
+Target package layout (see [Status](#status) for what is implemented so far):
+
 ```
 com.sina.txflow
 ├── domain
@@ -103,16 +105,33 @@ Aggregate tables use `INSERT ... ON CONFLICT ... DO UPDATE` on a natural key.
 A read-then-decide approach has a race window between the check and the write. The database-level upsert is atomic,
 which is what makes reruns safe.
 
+### Daily summaries are keyed per currency
+
+The natural key of `daily_summary` is `(summary_date, type, status, currency)`, enforced by a unique constraint.
+Summing IRR and USD into one total would produce a meaningless number, so each currency gets its own row.
+
 ### `BigDecimal` for money, never `double`
 
 `0.1 + 0.2` is `0.30000000000000004` in binary floating point. Over thousands of transactions, balances stop
 reconciling.
+
+Amounts are stored as `NUMERIC(19, 4)`. Aggregate columns use `NUMERIC(24, 4)`, because a day's total is the sum of
+many amounts and must never overflow the column it lands in.
+
+### Flyway owns the schema
+
+The schema is defined in versioned SQL migrations under `src/main/resources/db/migration`. Hibernate runs with
+`ddl-auto: validate` and never modifies the database. Constraints, indexes and column types are explicit decisions,
+not side effects of entity annotations.
 
 ### Rejected records don't stop the run
 
 Invalid rows are written to a dead-letter table with the reason for rejection, and processing continues. If the
 rejection rate crosses a threshold, the run is marked `PARTIAL` rather than `SUCCESS` — the data landed, but the run
 needs a look.
+
+The raw record is stored as `JSONB`, so rejected data can be queried later ("how many rejections had a negative
+amount?") instead of being parsed out of free text.
 
 ### Testcontainers instead of H2
 
@@ -121,9 +140,9 @@ entirely on that clause, testing it against a different engine would mean not te
 
 ---
 
-## Fraud rules
+## Fraud rules (planned)
 
-Rules implement a single interface, so adding one requires no changes to existing code:
+Rules will implement a single interface, so adding one requires no changes to existing code:
 
 ```java
 public interface FraudRule {
@@ -158,40 +177,58 @@ separately.
 
 |            |                                  |
 |------------|----------------------------------|
-| Language   | Java 21                          |
-| Framework  | Spring Boot                      |
-| Database   | PostgreSQL                       |
+| Language   | Java 25                          |
+| Framework  | Spring Boot 4.1                  |
+| Database   | PostgreSQL 16                    |
+| Migrations | Flyway                           |
 | Scheduling | Spring Scheduler                 |
 | Validation | ValidationLib                    |
 | Testing    | JUnit 5, Mockito, Testcontainers |
-| Build      | Gradle                            |
-| CI         | GitHub Actions                   |
+| Build      | Gradle                           |
 
 ---
 
 ## Running locally
 
-Start PostgreSQL:
+### Prerequisites
+
+- JDK 25
+- Docker (required for both the local database and the integration tests)
+
+### Start PostgreSQL
 
 ```bash
 docker compose up -d
 ```
 
-Run the application:
+### Run the application
 
 ```bash
-./mvnw spring-boot:run
+./gradlew bootRun
 ```
 
-Run tests:
+On Windows, use `gradlew.bat` instead of `./gradlew`.
+
+The schema is created by Flyway on startup.
+
+### Run tests
 
 ```bash
-./mvnw test
+./gradlew test
+```
+
+Integration tests start a throwaway PostgreSQL container through Testcontainers, so Docker must be running. No local
+database setup is needed for tests.
+
+### Reset the local database
+
+```bash
+docker compose down -v
 ```
 
 ---
 
-## API
+## API (planned)
 
 | Method | Path                                          | Description                           |
 |--------|-----------------------------------------------|---------------------------------------|
@@ -210,7 +247,11 @@ Under active development.
 - [x] Domain model
 - [x] Ports
 - [x] Extract with watermark
-- [x] Transform and validation
+- [x] Transform with dead-letter handling
+- [x] Schema migrations (Flyway)
+- [x] Integration tests against real PostgreSQL (Testcontainers)
+- [ ] Persistence adapters
+- [ ] ValidationLib adapter
 - [ ] Idempotent load
 - [ ] Fraud rule engine
 - [ ] REST API

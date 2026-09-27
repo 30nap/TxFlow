@@ -7,6 +7,7 @@ public record DailySummary(
         LocalDate date,
         TransactionType type,
         TransactionStatus status,
+        String currency,
         long totalCount,
         BigDecimal totalAmount,
         BigDecimal avgAmount,
